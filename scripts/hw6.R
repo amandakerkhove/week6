@@ -1,6 +1,7 @@
 
 library(tidyverse)
 library(nlme)
+library(pwr)
 
 # Using Mongolia fish sampling data provided by Maggie
 # Shaw and the Jensen lab, we are looking into how 
@@ -40,6 +41,8 @@ fish_data_ready <- fish_data %>%
          mesh_size = mesh_mm)  %>%
   select(fyear, floc, mesh_size, fish_length = length_mm)
 
+plot(fish_data_ready$mesh_size, fish_data_ready$fish_length)
+
 # No random effects
 
 m1 <- gls(fish_length ~ 1 + mesh_size * floc,
@@ -71,10 +74,37 @@ summary(moptimal)
 
 ##### Run simulation #####
 
-# Extract the mean and variance using the actual data
+# Extract the values needed to create simulation data from the actual data
 
+fish_length_mean <- mean(fish_data_ready$fish_length)
+fish_length_stddev <- sd(fish_data_ready$fish_length)
+mesh_size_vals <- unique(fish_data_ready$mesh_size)
 
 # Generate simulation data using random values from a distributions
 
+n <- 100 # Number of values per simulation
+num_simulations <- 10
+
+# Prepare an empty data frmae to store simulation outputs
+simulation_outputs_df <- data.frame(matrix(ncol=1, nrow=num_simulations))
+names(simulation_outputs_df) <- c('p_gls')
+
+for(i in 1:nrow(simulation_outputs_df)) {
+  
+  # Create simulated data
+  simulated_data <- data.frame(
+    mesh_size = sample(mesh_size_vals, n, replace=T), 
+    fish_length = rnorm(n, mean=fish_length_mean, sd = fish_length_stddev))
+  
+  # Generate model using simulation data
+  simulated_model <- gls(fish_length ~ 1 + mesh_size,
+                         method = "REML", data = simulated_data)
+  
+  # Extract p-value and store
+  simulation_outputs_df[i,1] <- summary(simulated_model)$tTable[2,4]
+}
 
 ##### Evaluate simulation outcomes #####
+
+# Power analysis
+
