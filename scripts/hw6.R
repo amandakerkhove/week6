@@ -69,6 +69,7 @@ moptimal <- gls(fish_length ~ 1 + mesh_size,
                 method = "REML", data = fish_data_ready)
 summary(moptimal)
 
+
 ##### Run simulation #####
 
 # Extract the mean and variance using the actual data
